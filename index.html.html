@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalender Pendidikan Interaktif - SMP Negeri 7 Payakumbuh</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .editable-active {
+            position: relative;
+            outline: 2px dashed #3b82f6;
+            outline-offset: 4px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .editable-active:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-layout {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 1rem !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- TOP HEADER -->
+    <header class="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 text-white shadow-md relative">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4 text-center md:text-left flex-col md:flex-row w-full md:w-auto">
+                
+                <!-- Logo Uploader (Interactive) -->
+                <div class="relative group">
+                    <div id="school-logo-container" class="w-20 h-20 bg-white rounded-full flex items-center justify-center p-1.5 shadow-md overflow-hidden cursor-pointer border-2 border-indigo-500/30">
+                        <!-- Default SVG Logo -->
+                        <svg id="default-logo" class="w-full h-full text-blue-900" viewBox="0 0 100 100" fill="currentColor">
+                            <polygon points="50,10 90,30 90,75 50,95 10,75 10,30" fill="#1e3a8a"/>
+                            <polygon points="50,15 85,32 85,72 50,90 15,72 15,32" fill="#3b82f6"/>
+                            <circle cx="50" cy="53" r="22" fill="#facc15"/>
+                            <path d="M43,45 L50,35 L57,45 L50,42 Z" fill="#1e3a8a"/>
+                            <text x="50" y="62" font-size="14" font-weight="bold" fill="#1e3a8a" text-anchor="middle">7</text>
+                            <text x="50" y="72" font-size="6" font-weight="bold" fill="white" text-anchor="middle">PAYAKUMBUH</text>
+                        </svg>
+                        <img id="custom-logo" class="w-full h-full object-contain hidden" alt="Logo Sekolah">
+                    </div>
+                    <!-- Hover overlay for file upload (only active/visible during edit mode) -->
+                    <div id="logo-hover-overlay" class="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center text-[10px] text-white opacity-0 transition duration-150 cursor-pointer hidden">
+                        <i data-lucide="camera" class="w-5 h-5 mb-0.5"></i>
+                        <span>Ubah Logo</span>
+                    </div>
+                    <input type="file" id="logo-input" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                </div>
+
+                <div class="flex-grow">
+                    <h1 id="meta-govt" class="text-xl sm:text-2xl font-extrabold tracking-tight">PEMERINTAH KOTA PAYAKUMBUH</h1>
+                    <p id="meta-school" class="text-sm sm:text-base font-semibold text-blue-200">DINAS PENDIDIKAN • SMP NEGERI 7 PAYAKUMBUH</p>
+                    <p id="meta-address" class="text-xs text-blue-300">Jl. KH. A. Dahlan, Kelurahan Napar, Kec. Payakumbuh Utara | NPSN: 10303899</p>
+                </div>
+            </div>
+            
+            <div class="text-center md:text-right flex flex-col items-center md:items-end">
+                <span id="meta-sk" class="inline-block bg-blue-700/50 border border-blue-500/30 text-yellow-300 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-1">SK Kadisdik No: 400.3.2/142/Disdik-Pyk/2026</span>
+                <h2 class="text-lg font-bold">KALENDER PENDIDIKAN</h2>
+                <p class="text-sm text-indigo-200">Tahun Pelajaran 2026/2027</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- ADMIN & BAR MENU (no-print) -->
+    <div class="bg-slate-900 text-white py-3.5 px-4 shadow-inner no-print">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-1.5 bg-blue-500/20 text-blue-400 rounded-lg">
+                    <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-blue-400">Pengaturan Kalender & Profil</p>
+                    <p class="text-[11px] text-slate-400">Aktifkan Mode Admin untuk mengubah kegiatan, nama, tanda tangan, dan hari efektif bulanan.</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Toggle Mode Edit -->
+                <button id="btn-toggle-edit" onclick="toggleEditMode()" class="px-4 py-2 text-xs font-bold rounded-xl bg-slate-800 border border-slate-700 hover:border-blue-500 text-slate-300 hover:text-white flex items-center gap-2 transition duration-200">
+                    <i data-lucide="edit-3" class="w-4 h-4 text-blue-400"></i> Mode Admin (Mati)
+                </button>
+                <!-- Edit Effective Days Button -->
+                <button id="btn-admin-edit-stats" onclick="openStatsEditorModal()" class="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white flex items-center gap-2 transition duration-150 hidden">
+                    <i data-lucide="calculator" class="w-4 h-4"></i> Edit Hari & Minggu Efektif
+                </button>
+                <!-- Add Event Shortcut -->
+                <button id="btn-admin-add-event" onclick="openAddEventModal()" class="px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-2 transition duration-150 hidden">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Tambah Kegiatan
+                </button>
+                <!-- Export/Import JSON Options -->
+                <button onclick="exportCalendarData()" class="p-2 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700 text-slate-300 transition" title="Ekspor Data Backup (JSON)">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                </button>
+                <button onclick="triggerImport()" class="p-2 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700 text-slate-300 transition" title="Impor Data Backup (JSON)">
+                    <i data-lucide="upload" class="w-4 h-4"></i>
+                </button>
+                <input type="file" id="import-input" accept=".json" class="hidden" onchange="importCalendarData(event)">
+                <button onclick="resetToDefaultData()" class="px-3 py-2 text-xs font-bold rounded-xl bg-red-950/40 border border-red-900/60 text-red-400 hover:bg-red-900 hover:text-white transition" title="Kembalikan ke Data Bawaan">
+                    Reset Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        
+        <!-- STATS & SUMMARY (Dinamis dari Data Hari Efektif) -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 no-print">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="p-3 bg-blue-100 rounded-xl text-blue-600">
+                    <i data-lucide="calendar-days" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Semester Ganjil</p>
+                    <p id="summary-ganjil-he" class="text-lg font-bold text-slate-800">115 Hari Efektif</p>
+                    <p id="summary-ganjil-me" class="text-xs text-blue-600">19 Minggu Efektif</p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="p-3 bg-emerald-100 rounded-xl text-emerald-600">
+                    <i data-lucide="calendar-check" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Semester Genap</p>
+                    <p id="summary-genap-he" class="text-lg font-bold text-slate-800">96 Hari Efektif</p>
+                    <p id="summary-genap-me" class="text-xs text-emerald-600">16 Minggu Efektif</p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="p-3 bg-indigo-100 rounded-xl text-indigo-600">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Program Rutin Mingguan</p>
+                    <p class="text-lg font-bold text-slate-800">Pramuka & Olahraga</p>
+                    <p class="text-xs text-indigo-600">Setiap Jumat & Sabtu</p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="p-3 bg-amber-100 rounded-xl text-amber-600">
+                    <i data-lucide="clock" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Status Pembaruan</p>
+                    <p id="local-status-indicator" class="text-lg font-bold text-slate-800">Penyimpanan Aktif</p>
+                    <p class="text-xs text-amber-600">Sinkronisasi Lokal</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- NAVIGATION & SEARCH CONTROLS -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="btn-grid" onclick="switchView('grid')" class="px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm flex items-center gap-2 transition">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i> Tampilan Grid 12 Bulan
+                </button>
+                <button id="btn-monthly" onclick="switchView('monthly')" class="px-4 py-2 text-sm font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-2 transition">
+                    <i data-lucide="calendar" class="w-4 h-4"></i> Fokus Bulanan
+                </button>
+                <button id="btn-agenda" onclick="switchView('agenda')" class="px-4 py-2 text-sm font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-2 transition">
+                    <i data-lucide="list-todo" class="w-4 h-4"></i> Daftar Agenda (SK)
+                </button>
+            </div>
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="relative w-full md:w-64">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="event-search" oninput="searchEvents()" placeholder="Cari kegiatan..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+                </div>
+                <button onclick="window.print()" class="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition" title="Cetak Kalender">
+                    <i data-lucide="printer" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 1: GRID 12 MONTHS -->
+        <div id="view-grid" class="space-y-6">
+            <!-- Legend / Panduan Warna (From Gambar 2 & 3) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 no-print">
+                <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-3">Legenda Warna & Kategori Kegiatan</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2.5">
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded bg-sky-400 block shrink-0 border border-sky-500/20"></span>
+                        <span class="text-slate-600 font-medium">Awal Semester</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded bg-amber-400 block shrink-0 border border-amber-500/20"></span>
+                        <span class="text-slate-600 font-medium">MPLS (Siswa Baru)</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded bg-rose-400 block shrink-0 border border-rose-500/20"></span>
+                        <span class="text-slate-600 font-medium">Asesmen/Ujian</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded bg-emerald-400 block shrink-0 border border-emerald-500/20"></span>
+                        <span class="text-slate-600 font-medium">Classmeeting</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded bg-indigo-700 block shrink-0 border border-indigo-900/20"></span>
+                        <span class="text-slate-600 font-medium">Terima Rapor</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded bg-purple-500 block shrink-0 border border-purple-600/20"></span>
+                        <span class="text-slate-600 font-medium">Ramadhan/Idul Fitri</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded bg-red-500 block shrink-0 border border-red-600/20"></span>
+                        <span class="text-slate-600 font-medium">Libur Nasional</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded bg-slate-200 block shrink-0 border border-slate-300"></span>
+                        <span class="text-slate-600 font-medium">Libur Semester</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Container -->
+            <div id="calendar-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print-layout">
+                <!-- Programmatically filled by JS -->
+            </div>
+        </div>
+
+        <!-- VIEW 2: FOCUS MONTHLY -->
+        <div id="view-monthly" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex items-center justify-between mb-6">
+                    <button onclick="changeMonthlyMonth(-1)" class="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl transition">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </button>
+                    <h2 id="monthly-title" class="text-2xl font-bold text-slate-800">Nama Bulan 2026</h2>
+                    <button onclick="changeMonthlyMonth(1)" class="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl transition">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 gap-2 mb-4 text-center text-xs font-bold text-slate-400 tracking-wider">
+                    <div class="text-red-500">M</div>
+                    <div>S</div>
+                    <div>S</div>
+                    <div>R</div>
+                    <div>K</div>
+                    <div class="text-emerald-600">J</div>
+                    <div>S</div>
+                </div>
+                <div id="monthly-calendar-days" class="grid grid-cols-7 gap-2">
+                    <!-- Programmatically filled -->
+                </div>
+            </div>
+            
+            <!-- Side Events panel & Monthly Effectiveness Widget -->
+            <div class="space-y-6">
+                <!-- Monthly Effectiveness Stats Card -->
+                <div class="bg-gradient-to-br from-indigo-900 to-blue-900 text-white p-5 rounded-2xl shadow-sm border border-slate-200/20">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-200 mb-3 flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-4 h-4"></i> Efektivitas Pembelajaran
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-white/10 p-3 rounded-xl text-center border border-white/5">
+                            <p class="text-[10px] uppercase font-semibold text-indigo-200">Hari Efektif (HE)</p>
+                            <p id="monthly-stat-he" class="text-xl font-black text-white">0 Hari</p>
+                        </div>
+                        <div class="bg-white/10 p-3 rounded-xl text-center border border-white/5">
+                            <p class="text-[10px] uppercase font-semibold text-indigo-200">Minggu Efektif (ME)</p>
+                            <p id="monthly-stat-me" class="text-xl font-black text-white">0 Minggu</p>
+                        </div>
+                    </div>
+                    <div class="bg-black/20 p-3 rounded-xl border border-white/5 text-xs text-slate-200">
+                        <span class="font-bold block mb-0.5">Fokus Akademik Bulan Ini:</span>
+                        <p id="monthly-stat-notes" class="leading-relaxed text-slate-300 italic">Memuat target bulan...</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+                        <i data-lucide="clock-4" class="text-blue-600"></i> Detail Kegiatan Bulan Ini
+                    </h3>
+                    <div id="monthly-events-list" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: AGENDA LIST (From Gambar 1 & Gambar 3) -->
+        <div id="view-agenda" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">SK Penjabaran Kegiatan Sekolah (Lampiran I & II)</h2>
+                        <p class="text-xs text-slate-500">Peta jalan pendidikan resmi Dinas Pendidikan & Sekolah TA 2026/2027</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="filterAgendaSemester('all')" id="tab-agenda-all" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 border border-blue-100">Semua</button>
+                        <button onclick="filterAgendaSemester('1')" id="tab-agenda-1" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100">Semester I (Ganjil)</button>
+                        <button onclick="filterAgendaSemester('2')" id="tab-agenda-2" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100">Semester II (Genap)</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-600">
+                        <thead class="bg-slate-100/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <tr>
+                                <th class="px-6 py-3.5">No</th>
+                                <th class="px-6 py-3.5">Nama Kegiatan</th>
+                                <th class="px-6 py-3.5">Pelaksanaan / Rentang Waktu</th>
+                                <th class="px-6 py-3.5">Sifat & Detail Kelompok</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agenda-table-body" class="divide-y divide-slate-100">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- EXTRA SCHOOL POLICIES PANEL (From Gambar 3 Notes) -->
+        <section class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2 text-indigo-700">
+                    <i data-lucide="book-open"></i> Kebijakan & Catatan Sekolah
+                </h3>
+                <ul class="space-y-2.5 text-xs text-slate-600">
+                    <li class="flex items-start gap-2">
+                        <span class="text-indigo-600 font-bold">1.</span>
+                        <span><strong>Kegiatan Pramuka</strong> wajib diikuti oleh seluruh siswa setiap hari Sabtu pagi.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-indigo-600 font-bold">2.</span>
+                        <span><strong>Pemutakhiran Data Dapodik</strong> berkala setiap bulan untuk validitas administrasi.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-indigo-600 font-bold">3.</span>
+                        <span>Kegiatan Adiwiyata, pengelolaan sampah mandiri, dan akreditasi sekolah berjalan kontinu di tahun 2026.</span>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2 text-emerald-700">
+                    <i data-lucide="users"></i> Pola Kegiatan Hari Jumat
+                </h3>
+                <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                    Setiap hari Jumat, SMP Negeri 7 Payakumbuh menyelenggarakan kegiatan pembinaan karakter dan kebugaran:
+                </p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="p-2 bg-emerald-50 border border-emerald-100 rounded-lg text-center">
+                        <p class="text-xs font-bold text-emerald-800">Minggu A</p>
+                        <p class="text-[10px] text-emerald-600">Jumat Olahraga / Sehat</p>
+                    </div>
+                    <div class="p-2 bg-emerald-50 border border-emerald-100 rounded-lg text-center">
+                        <p class="text-xs font-bold text-emerald-800">Minggu B</p>
+                        <p class="text-[10px] text-emerald-600">Jumat Berkah & Tahfidz</p>
+                    </div>
+                    <div class="p-2 bg-emerald-50 border border-emerald-100 rounded-lg text-center">
+                        <p class="text-xs font-bold text-emerald-800">Minggu C</p>
+                        <p class="text-[10px] text-emerald-600">Pengelolaan Sampah</p>
+                    </div>
+                    <div class="p-2 bg-emerald-50 border border-emerald-100 rounded-lg text-center">
+                        <p class="text-xs font-bold text-emerald-800">Minggu D</p>
+                        <p class="text-[10px] text-emerald-600">Rapat & Brifing Guru</p>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2 text-rose-700">
+                    <i data-lucide="shield-alert"></i> Penyelenggaraan Ujian (TKA/AN)
+                </h3>
+                <ul class="space-y-2.5 text-xs text-slate-600">
+                    <li class="flex items-start gap-2">
+                        <span class="w-1.5 h-1.5 bg-rose-500 rounded-full mt-1.5 shrink-0"></span>
+                        <span><strong>TKA - AN SMP / Paket B:</strong> Dilaksanakan tanggal 5 - 17 April 2026.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="w-1.5 h-1.5 bg-rose-500 rounded-full mt-1.5 shrink-0"></span>
+                        <span><strong>Asesmen Sumatif Akhir:</strong> Dilaksanakan serentak pada bulan Desember dan Juni.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="w-1.5 h-1.5 bg-rose-500 rounded-full mt-1.5 shrink-0"></span>
+                        <span><strong>Ujian Kesetaraan Paket C:</strong> Berlangsung 12 - 23 April 2027.</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER SIGNATURE -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-slate-500">
+            <div class="text-center md:text-left">
+                <p class="font-semibold text-slate-700">SMP Negeri 7 Payakumbuh</p>
+                <p class="text-xs text-slate-400">Kalender Pendidikan Elektronik & Interaktif Kota Payakumbuh.</p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-6 text-center sm:text-left">
+                <div class="border-t sm:border-t-0 sm:border-l border-slate-200 pt-4 sm:pt-0 sm:pl-6">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Mengetahui, Kepala Dinas Pendidikan</p>
+                    <p id="meta-kadis" class="font-bold text-slate-800 text-sm mt-1">NALFIRA, S.Pd, M.S.E</p>
+                    <p id="meta-kadis-nip" class="text-xs">NIP. 19721009 200003 1 003</p>
+                </div>
+                <div class="border-t sm:border-t-0 sm:border-l border-slate-200 pt-4 sm:pt-0 sm:pl-6">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Kepala Sekolah SMPN 7</p>
+                    <p id="meta-kepsek" class="font-bold text-slate-800 text-sm mt-1">Imra Addi Candra, M.Pd., Kons.</p>
+                    <p id="meta-kepsek-nip" class="text-xs">NIP. 19811012 200604 1 004</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- INTERACTIVE EVENT MODAL DETAIL -->
+    <div id="event-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 transform transition-all scale-95 duration-200" id="modal-card">
+            <div class="px-6 py-5 bg-gradient-to-r from-blue-900 to-indigo-900 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="info" class="w-5 h-5 text-indigo-200"></i>
+                    <h3 class="font-bold text-lg">Informasi Tanggal</h3>
+                </div>
+                <button onclick="closeModal()" class="text-white/80 hover:text-white hover:bg-white/10 p-1 rounded-lg transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div id="modal-date-header" class="text-sm font-bold text-blue-600 mb-2">Minggu, 13 Juli 2026</div>
+                <div id="modal-events" class="space-y-4">
+                    <!-- Event list dynamically placed here -->
+                </div>
+                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between gap-3">
+                    <button id="modal-btn-add-quick" class="px-4 py-2 text-xs font-bold rounded-xl bg-blue-100 text-blue-700 hover:bg-blue-200 transition hidden">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 inline mr-1"></i> Tambah Acara
+                    </button>
+                    <button onclick="closeModal()" class="px-4 py-2 text-sm font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition ml-auto">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM ADD / EDIT EVENT MODAL -->
+    <div id="form-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100">
+            <div class="px-6 py-5 bg-blue-800 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="calendar-plus" class="w-5 h-5 text-blue-200"></i>
+                    <h3 id="form-modal-title" class="font-bold text-lg">Kelola Kegiatan Kalender</h3>
+                </div>
+                <button onclick="closeFormModal()" class="text-white/80 hover:text-white hover:bg-white/10 p-1 rounded-lg transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="event-editor-form" onsubmit="saveEventData(event)" class="p-6 space-y-4">
+                <input type="hidden" id="form-event-id">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nama Kegiatan <span class="text-red-500">*</span></label>
+                    <input type="text" id="form-event-name" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="Contoh: Asesmen Nasional SMP7">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tanggal Mulai <span class="text-red-500">*</span></label>
+                        <input type="date" id="form-event-start" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tanggal Selesai <span class="text-red-500">*</span></label>
+                        <input type="date" id="form-event-end" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Kategori Warna <span class="text-red-500">*</span></label>
+                        <select id="form-event-category" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+                            <option value="awal-akhir-semester">Awal Semester (Biru Muda)</option>
+                            <option value="mpls">MPLS (Kuning)</option>
+                            <option value="ujian">Asesmen/Ujian (Merah Muda)</option>
+                            <option value="classmeeting">Classmeeting (Hijau Daun)</option>
+                            <option value="rapor">Terima Rapor (Indigo)</option>
+                            <option value="ramadhan">Ramadhan/Idul Fitri (Ungu)</option>
+                            <option value="libur-nasional">Libur Nasional (Merah)</option>
+                            <option value="libur-semester">Libur Semester (Abu-abu)</option>
+                            <option value="rutin">Rutin Sekolah (Transparan/Dotted)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Semester <span class="text-red-500">*</span></label>
+                        <select id="form-event-semester" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+                            <option value="1">Semester I (Ganjil)</option>
+                            <option value="2">Semester II (Genap)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Keterangan / Deskripsi</label>
+                    <textarea id="form-event-desc" rows="2" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50" placeholder="Detail informasi tambahan..."></textarea>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                    <button type="button" onclick="closeFormModal()" class="px-4 py-2 text-sm font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Batal</button>
+                    <button type="submit" class="px-6 py-2 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition">Simpan Agenda</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDITOR HARI & MINGGU EFEKTIF PERBULAN -->
+    <div id="stats-editor-modal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-slate-100 flex flex-col">
+            <div class="px-6 py-5 bg-emerald-800 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-5 h-5 text-emerald-200"></i>
+                    <h3 class="font-bold text-lg">Kelola Hari & Minggu Efektif (TP 2026/2027)</h3>
+                </div>
+                <button onclick="closeStatsEditorModal()" class="text-white/80 hover:text-white hover:bg-white/10 p-1 rounded-lg transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto space-y-4 flex-grow">
+                <p class="text-xs text-slate-500 mb-2">Gunakan formulir ini untuk mengubah jumlah Hari Efektif (HE), Minggu Efektif (ME), dan fokus utama kurikulum pada setiap bulan pembelajaran.</p>
+                
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 text-slate-700 uppercase font-bold tracking-wider">
+                            <tr>
+                                <th class="px-4 py-3">Bulan</th>
+                                <th class="px-4 py-3 w-28">Hari Efektif (HE)</th>
+                                <th class="px-4 py-3 w-32">Minggu Efektif (ME)</th>
+                                <th class="px-4 py-3">Fokus & Target Pembelajaran</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stats-editor-tbody" class="divide-y divide-slate-100">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button onclick="closeStatsEditorModal()" class="px-4 py-2 text-sm font-semibold rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 transition">Batal</button>
+                <button onclick="saveStatsEditorData()" class="px-6 py-2 text-sm font-semibold rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white transition">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        // Fallback default configuration values
+        const defaultMetadata = {
+            govtName: "PEMERINTAH KOTA PAYAKUMBUH",
+            schoolName: "DINAS PENDIDIKAN • SMP NEGERI 7 PAYAKUMBUH",
+            address: "Jl. KH. A. Dahlan, Kelurahan Napar, Kec. Payakumbuh Utara | NPSN: 10303899",
+            skNumber: "SK Kadisdik No: 400.3.2/142/Disdik-Pyk/2026",
+            kadisName: "NALFIRA, S.Pd, M.S.E",
+            kadisNip: "NIP. 19721009 200003 1 003",
+            kepsekName: "Imra Addi Candra, M.Pd., Kons.",
+            kepsekNip: "NIP. 19811012 200604 1 004",
+            logoBase64: ""
+        };
+
+        // Core dynamic arrays mapping
+        const defaultEvents = [
+            { id: 'ev-1', start: '2026-07-01', end: '2026-07-12', name: 'Libur Akhir Semester Ganjil/Genap Sebelumnya', category: 'libur-semester', semester: 1 },
+            { id: 'ev-2', start: '2026-07-09', end: '2026-07-09', name: 'Daftar Ulang Kelas VIII dan IX', category: 'awal-akhir-semester', semester: 1, desc: 'Administrasi kenaikan kelas' },
+            { id: 'ev-3', start: '2026-07-10', end: '2026-07-10', name: 'Rapat Koordinasi dengan Orang Tua Kelas VII', category: 'awal-akhir-semester', semester: 1 },
+            { id: 'ev-4', start: '2026-07-13', end: '2026-07-13', name: 'Awal Semester Ganjil TA 2026/2027', category: 'awal-akhir-semester', semester: 1 },
+            { id: 'ev-5', start: '2026-07-13', end: '2026-07-16', name: 'Masa Pengenalan Lingkungan Sekolah (MPLS)', category: 'mpls', semester: 1 },
+            { id: 'ev-6', start: '2026-07-31', end: '2026-07-31', name: 'Batas Akhir Laporan BOSP Tahap I', category: 'awal-akhir-semester', semester: 1 },
+            { id: 'ev-7', start: '2026-08-12', end: '2026-08-12', name: 'Hari UCH Nasional', category: 'libur-nasional', semester: 1 },
+            { id: 'ev-8', start: '2026-08-14', end: '2026-08-14', name: 'Hari Pramuka Nasional', category: 'rutin', semester: 1, desc: 'Upacara khusus & Jambore mini' },
+            { id: 'ev-9', start: '2026-08-17', end: '2026-08-17', name: 'HUT Kemerdekaan RI ke-81', category: 'libur-nasional', semester: 1 },
+            { id: 'ev-10', start: '2026-08-25', end: '2026-08-25', name: 'Peringatan Maulid Nabi Muhammad SAW (Kota)', category: 'libur-nasional', semester: 1 },
+            { id: 'ev-11', start: '2026-08-31', end: '2026-08-31', name: 'Cut-off Singkronisasi Dapodik', category: 'awal-akhir-semester', semester: 1 },
+            { id: 'ev-12', start: '2026-09-05', end: '2026-09-05', name: 'Maulid Nabi Muhammad SAW', category: 'libur-nasional', semester: 1 },
+            { id: 'ev-13', start: '2026-09-08', end: '2026-09-13', name: 'Asesmen Nasional (AN) / TKA Tingkat SMP', category: 'ujian', semester: 1 },
+            { id: 'ev-14', start: '2026-09-11', end: '2026-09-11', name: 'Hari Radio Republik Indonesia (RRI)', category: 'rutin', semester: 1 },
+            { id: 'ev-15', start: '2026-09-17', end: '2026-09-17', name: 'Hari Palang Merah Indonesia (PMI)', category: 'rutin', semester: 1 },
+            { id: 'ev-16', start: '2026-09-24', end: '2026-09-24', name: 'Hari Tani Nasional', category: 'rutin', semester: 1 },
+            { id: 'ev-17', start: '2026-10-01', end: '2026-10-01', name: 'Hari Kesaktian Pancasila', category: 'libur-nasional', semester: 1 },
+            { id: 'ev-18', start: '2026-10-02', end: '2026-10-02', name: 'Hari Batik Nasional', category: 'rutin', semester: 1, desc: 'Menggunakan pakaian batik lokal' },
+            { id: 'ev-19', start: '2026-10-05', end: '2026-10-05', name: 'Hari Lahir TNI', category: 'rutin', semester: 1 },
+            { id: 'ev-20', start: '2026-10-05', end: '2026-10-07', name: 'Penilaian Tengah Semester (UTS) Formatif', category: 'ujian', semester: 1 },
+            { id: 'ev-21', start: '2026-10-22', end: '2026-10-22', name: 'Hari Santri Nasional', category: 'rutin', semester: 1 },
+            { id: 'ev-22', start: '2026-10-26', end: '2026-11-07', name: 'TKA - AN Jenjang SMA / Paket C', category: 'ujian', semester: 1 },
+            { id: 'ev-23', start: '2026-10-28', end: '2026-10-28', name: 'Hari Sumpah Pemuda', category: 'rutin', semester: 1 },
+            { id: 'ev-24', start: '2026-11-10', end: '2026-11-10', name: 'Hari Pahlawan Nasional', category: 'rutin', semester: 1 },
+            { id: 'ev-25', start: '2026-11-12', end: '2026-11-12', name: 'Hari Ayah Nasional', category: 'rutin', semester: 1 },
+            { id: 'ev-26', start: '2026-11-25', end: '2026-11-25', name: 'Hari Guru Nasional (PGRI)', category: 'rutin', semester: 1 },
+            { id: 'ev-27', start: '2026-11-24', end: '2026-11-28', name: 'Try Out Ujian Sekolah Tahap I', category: 'ujian', semester: 1 },
+            { id: 'ev-28', start: '2026-12-01', end: '2026-12-07', name: 'Penilaian Sumatif Akhir Semester Ganjil', category: 'ujian', semester: 1 },
+            { id: 'ev-29', start: '2026-12-08', end: '2026-12-17', name: 'Classmeeting, Pengolahan Nilai & HUT Kota Payakumbuh', category: 'classmeeting', semester: 1 },
+            { id: 'ev-30', start: '2026-12-18', end: '2026-12-18', name: 'Pembagian Rapor Semester Ganjil', category: 'rapor', semester: 1 },
+            { id: 'ev-31', start: '2026-12-19', end: '2027-01-03', name: 'Libur Semester Ganjil', category: 'libur-semester', semester: 1 },
+            { id: 'ev-32', start: '2026-12-25', end: '2026-12-25', name: 'Hari Raya Natal', category: 'libur-nasional', semester: 1 },
+            { id: 'ev-33', start: '2026-12-26', end: '2026-12-26', name: 'Cuti Bersama Natal', category: 'libur-nasional', semester: 1 },
+            { id: 'ev-34', start: '2027-01-01', end: '2027-01-01', name: 'Tahun Baru Masehi 2027', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-35', start: '2027-01-04', end: '2027-01-04', name: 'Awal Semester Genap TA 2026/2027', category: 'awal-akhir-semester', semester: 2 },
+            { id: 'ev-36', start: '2027-01-16', end: '2027-01-16', name: 'Isra\' Mi\'raj', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-37', start: '2027-01-17', end: '2027-01-17', name: 'Tahun Baru Imlek 2578', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-38', start: '2027-01-25', end: '2027-01-25', name: 'Hari Gizi Nasional', category: 'rutin', semester: 2 },
+            { id: 'ev-39', start: '2027-01-28', end: '2027-01-28', name: 'Cuti Bersama Imlek', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-40', start: '2027-01-31', end: '2027-01-31', name: 'Batas Akhir Laporan BOSP Tahap I', category: 'awal-akhir-semester', semester: 2 },
+            { id: 'ev-41', start: '2027-02-06', end: '2027-02-06', name: 'Tahun Baru Imlek (Sesuai SK)', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-42', start: '2027-02-09', end: '2027-02-09', name: 'Hari Pers Nasional', category: 'rutin', semester: 2 },
+            { id: 'ev-43', start: '2027-02-10', end: '2027-02-10', name: 'Awal Ramadhan 1448 H (Menyesuaikan)', category: 'ramadhan', semester: 2 },
+            { id: 'ev-44', start: '2027-02-22', end: '2027-03-03', name: 'Pesantren Ramadhan 1448 H / Kegiatan Keagamaan', category: 'ramadhan', semester: 2 },
+            { id: 'ev-45', start: '2027-02-28', end: '2027-02-28', name: 'Verifikasi & Validasi Data Guru', category: 'awal-akhir-semester', semester: 2 },
+            { id: 'ev-46', start: '2027-03-09', end: '2027-03-09', name: 'Hari Raya Nyepi (Tahun Baru Saka 1949)', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-47', start: '2027-03-10', end: '2027-03-11', name: 'Hari Raya Idul Fitri 1448 H', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-48', start: '2027-03-12', end: '2027-03-21', name: 'Libur Khusus Idul Fitri 1448 H (Menyesuaikan)', category: 'ramadhan', semester: 2 },
+            { id: 'ev-49', start: '2027-03-17', end: '2027-03-17', name: 'Hari Perawat / Pahlawan Nasional SMP7', category: 'rutin', semester: 2 },
+            { id: 'ev-50', start: '2027-03-30', end: '2027-03-30', name: 'Cut-off Dapodik Sapras Sekolah', category: 'awal-akhir-semester', semester: 2 },
+            { id: 'ev-51', start: '2027-04-03', end: '2027-04-03', name: 'Wafat Isa Al-Masih (Jumat Agung)', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-52', start: '2027-04-05', end: '2027-04-05', name: 'Hari Kebangkitan Yesus Kristus (Paskah)', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-53', start: '2027-04-05', end: '2027-04-17', name: 'TKA - AN Jenjang SMP / Paket B', category: 'ujian', semester: 2 },
+            { id: 'ev-54', start: '2027-04-12', end: '2027-04-23', name: 'Ujian Akhir Kesetaraan Paket C', category: 'ujian', semester: 2 },
+            { id: 'ev-55', start: '2027-04-19', end: '2027-04-30', name: 'TKA - AN Jenjang SD / Paket A', category: 'ujian', semester: 2 },
+            { id: 'ev-56', start: '2027-04-20', end: '2027-04-25', name: 'Ujian Tengah Semester (UTS) / Ujian Akhir SMP', category: 'ujian', semester: 2 },
+            { id: 'ev-57', start: '2027-04-21', end: '2027-04-21', name: 'Hari Kartini', category: 'rutin', semester: 2 },
+            { id: 'ev-58', start: '2027-04-22', end: '2027-04-22', name: 'Hari Bumi Internasional', category: 'rutin', semester: 2 },
+            { id: 'ev-59', start: '2027-04-26', end: '2027-04-26', name: 'Hari Kesiapsiagaan Bencana', category: 'rutin', semester: 2 },
+            { id: 'ev-60', start: '2027-05-01', end: '2027-05-01', name: 'Hari Buruh Internasional', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-61', start: '2027-05-02', end: '2027-05-02', name: 'Hari Pendidikan Nasional', category: 'rutin', semester: 2 },
+            { id: 'ev-62', start: '2027-05-03', end: '2027-05-10', name: 'Ujian Akhir Sekolah SMP, Paket B', category: 'ujian', semester: 2 },
+            { id: 'ev-63', start: '2027-05-04', end: '2027-05-30', name: 'SPMB TP 2026/2027 (Menyesuaikan)', category: 'awal-akhir-semester', semester: 2 },
+            { id: 'ev-64', start: '2027-05-06', end: '2027-05-06', name: 'Hari Raya Kenaikan Isa Al-Masih', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-65', start: '2027-05-14', end: '2027-05-16', name: 'Lokakarya Kurikulum Operasional Satuan Pendidikan (KOSP)', category: 'awal-akhir-semester', semester: 2 },
+            { id: 'ev-66', start: '2027-05-17', end: '2027-05-17', name: 'Hari Raya Idul Adha 1448 H', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-67', start: '2027-05-20', end: '2027-05-20', name: 'Hari Raya Waisak 2571 BE', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-68', start: '2027-05-24', end: '2027-05-31', name: 'Ujian Akhir Sekolah SD / Paket A', category: 'ujian', semester: 2 },
+            { id: 'ev-69', start: '2027-06-01', end: '2027-06-01', name: 'Hari Lahir Pancasila', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-70', start: '2027-06-02', end: '2027-06-08', name: 'Ujian Semester Genap / Ulangan Akhir Tahun', category: 'ujian', semester: 2 },
+            { id: 'ev-71', start: '2027-06-05', end: '2027-06-05', name: 'Hari Lingkungan Hidup Sedunia', category: 'rutin', semester: 2 },
+            { id: 'ev-72', start: '2027-06-09', end: '2027-06-17', name: 'Persiapan Penyerahan Rapor / Classmeeting', category: 'classmeeting', semester: 2 },
+            { id: 'ev-73', start: '2027-06-18', end: '2027-06-18', name: 'Pembagian Rapor Semester Genap', category: 'rapor', semester: 2 },
+            { id: 'ev-74', start: '2027-06-19', end: '2027-07-04', name: 'Libur Semester Genap', category: 'libur-semester', semester: 2 },
+            { id: 'ev-75', start: '2027-06-17', end: '2027-06-17', name: 'Tahun Baru Hijriah 1449 H', category: 'libur-nasional', semester: 2 },
+            { id: 'ev-76', start: '2027-06-26', end: '2027-06-26', name: 'Hari Anti Narkoba Sedunia', category: 'rutin', semester: 2 }
+        ];
+
+        // Default Effective Days (HE) and Effective Weeks (ME) data (From Lampiran II / Image 2)
+        const defaultMonthlyStats = {
+            "2026-6": { he: 15, me: 3, notes: "Awal Masuk Sekolah & Masa MPLS Kelas VII" }, // Juli 2026
+            "2026-7": { he: 25, me: 4, notes: "Pembelajaran Efektif & Peringatan Proklamasi RI" }, // Agustus 2026
+            "2026-8": { he: 25, me: 4, notes: "Asesmen Nasional (AN) / TKA Tingkat SMP" }, // September 2026
+            "2026-9": { he: 26, me: 4, notes: "UTS Formatif Ganjil & Sumpah Pemuda" }, // Oktober 2026
+            "2026-10": { he: 24, me: 4, notes: "Kegiatan KBM Rutin & Peringatan Hari Guru" }, // November 2026
+            "2026-11": { he: 10, me: 0, notes: "Penilaian Akhir Ganjil, Classmeeting & Rapor" }, // Desember 2026
+            "2027-0": { he: 23, me: 4, notes: "Awal Masuk Belajar Semester Genap" }, // Januari 2027
+            "2027-1": { he: 18, me: 3, notes: "KBM Genap & Awal Masuk Ramadhan 1448 H" }, // Februari 2027
+            "2027-2": { he: 14, me: 2, notes: "Libur Khusus Idul Fitri 1448 H (Kota Payakumbuh)" }, // Maret 2027
+            "2027-3": { he: 20, me: 3, notes: "TKA-AN SMP / Paket B & KBM Efektif" }, // April 2027
+            "2027-4": { he: 15, me: 3, notes: "Ujian Akhir Sekolah SMP & Kelulusan" }, // Mei 2027
+            "2027-5": { he: 6, me: 1, notes: "Ujian Kenaikan Kelas, Rapor & Libur Genap" }  // Juni 2027
+        };
+
+        // Global States loads from localStorage if available
+        let schoolMetadata = JSON.parse(localStorage.getItem('smp7_metadata')) || {...defaultMetadata};
+        let calendarEvents = JSON.parse(localStorage.getItem('smp7_events')) || [...defaultEvents];
+        let monthlyStats = JSON.parse(localStorage.getItem('smp7_monthly_stats')) || {...defaultMonthlyStats};
+        let isEditMode = false;
+        let activeView = 'grid';
+
+        const monthNames = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+
+        const monthSequence = [
+            { year: 2026, month: 6 }, { year: 2026, month: 7 }, { year: 2026, month: 8 }, 
+            { year: 2026, month: 9 }, { year: 2026, month: 10 }, { year: 2026, month: 11 }, 
+            { year: 2027, month: 0 }, { year: 2027, month: 1 }, { year: 2027, month: 2 }, 
+            { year: 2027, month: 3 }, { year: 2027, month: 4 }, { year: 2027, month: 5 }
+        ];
+
+        let currentMonthlyIndex = 0;
+
+        const categoryConfig = {
+            'libur-semester': { bg: 'bg-slate-200 border-slate-300 text-slate-700', label: 'Libur Semester' },
+            'libur-nasional': { bg: 'bg-red-500 border-red-600 text-white font-bold', label: 'Libur Nasional' },
+            'mpls': { bg: 'bg-amber-400 border-amber-500 text-slate-900 font-medium', label: 'MPLS (Siswa Baru)' },
+            'awal-akhir-semester': { bg: 'bg-sky-400 border-sky-500 text-white font-medium', label: 'Awal/Akhir Semester' },
+            'ujian': { bg: 'bg-rose-400 border-rose-500 text-white font-medium', label: 'Ujian / Asesmen' },
+            'classmeeting': { bg: 'bg-emerald-400 border-emerald-500 text-white font-medium', label: 'Classmeeting / Rapor' },
+            'rapor': { bg: 'bg-indigo-700 border-indigo-800 text-white font-bold', label: 'Terima Rapor' },
+            'ramadhan': { bg: 'bg-purple-500 border-purple-600 text-white font-medium', label: 'Kegiatan Keagamaan' },
+            'rutin': { bg: 'bg-indigo-50 border border-dashed border-indigo-300 text-indigo-700', label: 'Rutin Sekolah' }
+        };
+
+        // Window Initializer
+        window.onload = function() {
+            lucide.createIcons();
+            applyMetadata();
+            calculateAndDisplayTotals();
+            build12MonthsGrid();
+            buildAgendaTable();
+            buildMonthlyView();
+        }
+
+        // Apply metadata state into the real DOM elements
+        function applyMetadata() {
+            document.getElementById('meta-govt').innerText = schoolMetadata.govtName;
+            document.getElementById('meta-school').innerText = schoolMetadata.schoolName;
+            document.getElementById('meta-address').innerText = schoolMetadata.address;
+            document.getElementById('meta-sk').innerText = schoolMetadata.skNumber;
+            document.getElementById('meta-kadis').innerText = schoolMetadata.kadisName;
+            document.getElementById('meta-kadis-nip').innerText = schoolMetadata.kadisNip;
+            document.getElementById('meta-kepsek').innerText = schoolMetadata.kepsekName;
+            document.getElementById('meta-kepsek-nip').innerText = schoolMetadata.kepsekNip;
+
+            // Handle logo loading
+            if (schoolMetadata.logoBase64) {
+                document.getElementById('default-logo').classList.add('hidden');
+                document.getElementById('custom-logo').src = schoolMetadata.logoBase64;
+                document.getElementById('custom-logo').classList.remove('hidden');
+            } else {
+                document.getElementById('default-logo').classList.remove('hidden');
+                document.getElementById('custom-logo').classList.add('hidden');
+            }
+        }
+
+        // Auto calculate summary metrics (From Gambar 2 Kumulatif)
+        function calculateAndDisplayTotals() {
+            let ganjilHE = 0, ganjilME = 0;
+            let genapHE = 0, genapME = 0;
+
+            // Ganjil: Juli(6) s/d Desember(11) 2026
+            for (let m = 6; m <= 11; m++) {
+                const key = `2026-${m}`;
+                if (monthlyStats[key]) {
+                    ganjilHE += parseInt(monthlyStats[key].he || 0);
+                    ganjilME += parseInt(monthlyStats[key].me || 0);
+                }
+            }
+
+            // Genap: Januari(0) s/d Juni(5) 2027
+            for (let m = 0; m <= 5; m++) {
+                const key = `2027-${m}`;
+                if (monthlyStats[key]) {
+                    genapHE += parseInt(monthlyStats[key].he || 0);
+                    genapME += parseInt(monthlyStats[key].me || 0);
+                }
+            }
+
+            // Render stats
+            document.getElementById('summary-ganjil-he').innerText = `${ganjilHE} Hari Efektif`;
+            document.getElementById('summary-ganjil-me').innerText = `${ganjilME} Minggu Efektif`;
+            document.getElementById('summary-genap-he').innerText = `${genapHE} Hari Efektif`;
+            document.getElementById('summary-genap-me').innerText = `${genapME} Minggu Efektif`;
+        }
+
+        // Toggle Dynamic Edit / Administrator Mode
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btn = document.getElementById('btn-toggle-edit');
+            const btnAdd = document.getElementById('btn-admin-add-event');
+            const btnStats = document.getElementById('btn-admin-edit-stats');
+            const quickAddBtn = document.getElementById('modal-btn-add-quick');
+            const logoOverlay = document.getElementById('logo-hover-overlay');
+
+            const editableIds = ['meta-govt', 'meta-school', 'meta-address', 'meta-sk', 'meta-kadis', 'meta-kadis-nip', 'meta-kepsek', 'meta-kepsek-nip'];
+
+            if (isEditMode) {
+                btn.className = "px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 text-white border border-blue-500 flex items-center gap-2 transition duration-200 animate-pulse";
+                btn.innerHTML = `<i data-lucide="shield-check" class="w-4 h-4 text-white"></i> Mode Admin (Aktif)`;
+                btnAdd.classList.remove('hidden');
+                btnStats.classList.remove('hidden');
+                quickAddBtn.classList.remove('hidden');
+                logoOverlay.classList.remove('hidden');
+
+                // Enable HTML contenteditable fields
+                editableIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    el.contentEditable = "true";
+                    el.classList.add('editable-active');
+                    el.addEventListener('blur', saveInlineChanges);
+                });
+
+            } else {
+                btn.className = "px-4 py-2 text-xs font-bold rounded-xl bg-slate-800 border border-slate-700 hover:border-blue-500 text-slate-300 hover:text-white flex items-center gap-2 transition duration-200";
+                btn.innerHTML = `<i data-lucide="edit-3" class="w-4 h-4 text-blue-400"></i> Mode Admin (Mati)`;
+                btnAdd.classList.add('hidden');
+                btnStats.classList.add('hidden');
+                quickAddBtn.classList.add('hidden');
+                logoOverlay.classList.add('hidden');
+
+                // Disable html contenteditable
+                editableIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    el.contentEditable = "false";
+                    el.classList.remove('editable-active');
+                    el.removeEventListener('blur', saveInlineChanges);
+                });
+            }
+            
+            // Re-render components to apply editing buttons or views
+            build12MonthsGrid();
+            buildMonthlyView();
+            buildAgendaTable();
+            lucide.createIcons();
+        }
+
+        // Inline metadata content saver
+        function saveInlineChanges(e) {
+            const id = e.target.id;
+            const textValue = e.target.innerText.trim();
+            
+            if (id === 'meta-govt') schoolMetadata.govtName = textValue;
+            if (id === 'meta-school') schoolMetadata.schoolName = textValue;
+            if (id === 'meta-address') schoolMetadata.address = textValue;
+            if (id === 'meta-sk') schoolMetadata.skNumber = textValue;
+            if (id === 'meta-kadis') schoolMetadata.kadisName = textValue;
+            if (id === 'meta-kadis-nip') schoolMetadata.kadisNip = textValue;
+            if (id === 'meta-kepsek') schoolMetadata.kepsekName = textValue;
+            if (id === 'meta-kepsek-nip') schoolMetadata.kepsekNip = textValue;
+
+            localStorage.setItem('smp7_metadata', JSON.stringify(schoolMetadata));
+        }
+
+        // Trigger logo input
+        document.getElementById('school-logo-container').onclick = function() {
+            if (isEditMode) {
+                document.getElementById('logo-input').click();
+            }
+        };
+
+        // Logo Upload to base64 parser
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    schoolMetadata.logoBase64 = e.target.result;
+                    localStorage.setItem('smp7_metadata', JSON.stringify(schoolMetadata));
+                    applyMetadata();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Retrieve Events Helper
+        function getEventsForDate(dateStr) {
+            const date = new Date(dateStr);
+            return calendarEvents.filter(ev => {
+                const start = new Date(ev.start);
+                const end = new Date(ev.end);
+                return date >= start && date <= end;
+            });
+        }
+
+        // Switching Views
+        function switchView(viewName) {
+            activeView = viewName;
+            document.getElementById('view-grid').classList.add('hidden');
+            document.getElementById('view-monthly').classList.add('hidden');
+            document.getElementById('view-agenda').classList.add('hidden');
+
+            document.getElementById('btn-grid').className = "px-4 py-2 text-sm font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-2 transition";
+            document.getElementById('btn-monthly').className = "px-4 py-2 text-sm font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-2 transition";
+            document.getElementById('btn-agenda').className = "px-4 py-2 text-sm font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-2 transition";
+
+            if (viewName === 'grid') {
+                document.getElementById('view-grid').classList.remove('hidden');
+                document.getElementById('btn-grid').className = "px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm flex items-center gap-2 transition";
+            } else if (viewName === 'monthly') {
+                document.getElementById('view-monthly').classList.remove('hidden');
+                document.getElementById('btn-monthly').className = "px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm flex items-center gap-2 transition";
+                buildMonthlyView();
+            } else if (viewName === 'agenda') {
+                document.getElementById('view-agenda').classList.remove('hidden');
+                document.getElementById('btn-agenda').className = "px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white shadow-sm flex items-center gap-2 transition";
+            }
+        }
+
+        // Render Grid View
+        function build12MonthsGrid() {
+            const container = document.getElementById('calendar-grid-container');
+            container.innerHTML = '';
+
+            monthSequence.forEach(item => {
+                const monthCard = document.createElement('div');
+                monthCard.className = "bg-white rounded-2xl shadow-sm border border-slate-200 p-4 hover:shadow-md transition duration-200 relative flex flex-col justify-between";
+                
+                // Top section of card
+                const topDiv = document.createElement('div');
+                
+                const monthName = monthNames[item.month];
+                const header = document.createElement('div');
+                header.className = "text-center py-2 bg-blue-50 text-blue-900 font-bold text-xs rounded-xl mb-3 flex items-center justify-between px-3";
+                header.innerHTML = `<span>${monthName.toUpperCase()} ${item.year}</span> <span class="text-[9px] bg-blue-200/50 px-2 py-0.5 rounded-full text-blue-800">T.P 26/27</span>`;
+                topDiv.appendChild(header);
+
+                const gridHead = document.createElement('div');
+                gridHead.className = "grid grid-cols-7 text-center text-[10px] font-extrabold text-slate-400 mb-2 uppercase";
+                const daysHeader = ['M', 'S', 'S', 'R', 'K', 'J', 'S'];
+                daysHeader.forEach((d, idx) => {
+                    const cell = document.createElement('div');
+                    if (idx === 0) cell.className = "text-red-500";
+                    else if (idx === 5) cell.className = "text-emerald-600";
+                    cell.innerText = d;
+                    gridHead.appendChild(cell);
+                });
+                topDiv.appendChild(gridHead);
+
+                const daysGrid = document.createElement('div');
+                daysGrid.className = "grid grid-cols-7 gap-1 text-center text-xs font-semibold mb-3";
+
+                const firstDayIndex = new Date(item.year, item.month, 1).getDay();
+                const totalDays = new Date(item.year, item.month + 1, 0).getDate();
+
+                for (let i = 0; i < firstDayIndex; i++) {
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = "py-1 text-slate-300 font-normal";
+                    emptyCell.innerText = "";
+                    daysGrid.appendChild(emptyCell);
+                }
+
+                for (let day = 1; day <= totalDays; day++) {
+                    const dayCell = document.createElement('div');
+                    const monthPadded = String(item.month + 1).padStart(2, '0');
+                    const dayPadded = String(day).padStart(2, '0');
+                    const fullDateStr = `${item.year}-${monthPadded}-${dayPadded}`;
+                    
+                    dayCell.innerText = day;
+                    dayCell.className = "py-1 rounded-lg cursor-pointer transition relative hover:scale-105 duration-100 border border-transparent ";
+                    
+                    const currentDayOfWeek = new Date(item.year, item.month, day).getDay();
+                    if (currentDayOfWeek === 0) {
+                        dayCell.className += "text-red-500 bg-red-50/50 hover:bg-red-100/50 ";
+                    } else if (currentDayOfWeek === 6) {
+                        dayCell.className += "text-indigo-600 border border-indigo-100 ";
+                    } else {
+                        dayCell.className += "text-slate-700 hover:bg-slate-100 ";
+                    }
+
+                    const events = getEventsForDate(fullDateStr);
+                    if (events.length > 0) {
+                        const nonRutin = events.find(e => e.category !== 'rutin');
+                        const targetCategory = nonRutin ? nonRutin.category : events[0].category;
+                        
+                        if (categoryConfig[targetCategory]) {
+                            dayCell.className = `py-1 rounded-lg cursor-pointer transition relative hover:scale-105 duration-100 border ${categoryConfig[targetCategory].bg}`;
+                        }
+                    }
+
+                    if (isEditMode) {
+                        dayCell.title = "Klik untuk kelola agenda";
+                    }
+
+                    dayCell.onclick = () => openDayModal(fullDateStr, events);
+                    daysGrid.appendChild(dayCell);
+                }
+                topDiv.appendChild(daysGrid);
+                monthCard.appendChild(topDiv);
+
+                // Bottom Section: Hari Efektif (HE) & Minggu Efektif (ME) (Indikator Baru)
+                const statsKey = `${item.year}-${item.month}`;
+                const stat = monthlyStats[statsKey] || { he: 0, me: 0 };
+                const bottomDiv = document.createElement('div');
+                bottomDiv.className = "mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-semibold";
+                bottomDiv.innerHTML = `
+                    <span class="flex items-center gap-1"><i data-lucide="check-square" class="w-3.5 h-3.5 text-blue-500"></i> HE: <strong class="text-slate-800">${stat.he} Hari</strong></span>
+                    <span class="flex items-center gap-1"><i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-indigo-500"></i> ME: <strong class="text-slate-800">${stat.me} Minggu</strong></span>
+                `;
+                monthCard.appendChild(bottomDiv);
+
+                container.appendChild(monthCard);
+            });
+            lucide.createIcons();
+        }
+
+        // Render Monthly Focus View with custom stats layout
+        function buildMonthlyView() {
+            const currentItem = monthSequence[currentMonthlyIndex];
+            const monthName = monthNames[currentItem.month];
+            
+            document.getElementById('monthly-title').innerText = `${monthName.toUpperCase()} ${currentItem.year}`;
+            
+            // Set stats inside sidebar card dynamically
+            const statsKey = `${currentItem.year}-${currentItem.month}`;
+            const currentStat = monthlyStats[statsKey] || { he: 0, me: 0, notes: "KBM Efektif Semester" };
+            
+            document.getElementById('monthly-stat-he').innerText = `${currentStat.he} Hari`;
+            document.getElementById('monthly-stat-me').innerText = `${currentStat.me} Minggu`;
+            document.getElementById('monthly-stat-notes').innerText = `"${currentStat.notes}"`;
+
+            const daysContainer = document.getElementById('monthly-calendar-days');
+            daysContainer.innerHTML = '';
+
+            const firstDayIndex = new Date(currentItem.year, currentItem.month, 1).getDay();
+            const totalDays = new Date(currentItem.year, currentItem.month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = "py-4 text-slate-300";
+                emptyCell.innerText = "";
+                daysContainer.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dayCell = document.createElement('div');
+                const monthPadded = String(currentItem.month + 1).padStart(2, '0');
+                const dayPadded = String(day).padStart(2, '0');
+                const fullDateStr = `${currentItem.year}-${monthPadded}-${dayPadded}`;
+                
+                dayCell.className = "py-3 rounded-xl cursor-pointer transition flex flex-col items-center justify-between border min-h-[50px] relative hover:shadow-sm ";
+                
+                const dayNum = document.createElement('span');
+                dayNum.innerText = day;
+                dayNum.className = "text-sm font-bold";
+                dayCell.appendChild(dayNum);
+
+                const currentDayOfWeek = new Date(currentItem.year, currentItem.month, day).getDay();
+                if (currentDayOfWeek === 0) {
+                    dayCell.className += "text-red-500 bg-red-50/50 hover:bg-red-100/30 border-red-100 ";
+                } else if (currentDayOfWeek === 6) {
+                    dayCell.className += "text-indigo-600 bg-indigo-50/20 border-indigo-100 ";
+                } else {
+                    dayCell.className += "text-slate-700 bg-slate-50/40 hover:bg-slate-100 border-slate-100 ";
+                }
+
+                const events = getEventsForDate(fullDateStr);
+                if (events.length > 0) {
+                    const primary = events.find(e => e.category !== 'rutin') || events[0];
+                    dayCell.className = `py-3 rounded-xl cursor-pointer transition flex flex-col items-center justify-between border min-h-[50px] relative hover:shadow-sm ${categoryConfig[primary.category].bg}`;
+                    
+                    if (events.length > 1) {
+                        const indicator = document.createElement('span');
+                        indicator.className = "absolute bottom-1 w-1.5 h-1.5 rounded-full bg-current opacity-80";
+                        dayCell.appendChild(indicator);
+                    }
+                }
+
+                dayCell.onclick = () => openDayModal(fullDateStr, events);
+                daysContainer.appendChild(dayCell);
+            }
+
+            // Populates Sidebar
+            const listContainer = document.getElementById('monthly-events-list');
+            listContainer.innerHTML = '';
+
+            const monthStart = new Date(currentItem.year, currentItem.month, 1);
+            const monthEnd = new Date(currentItem.year, currentItem.month + 1, 0);
+
+            const thisMonthEvents = calendarEvents.filter(ev => {
+                const s = new Date(ev.start);
+                const e = new Date(ev.end);
+                return (s <= monthEnd && e >= monthStart);
+            });
+
+            if (thisMonthEvents.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Tidak ada agenda khusus di bulan ini.</p>`;
+            } else {
+                thisMonthEvents.sort((a, b) => new Date(a.start) - new Date(b.start));
+                thisMonthEvents.forEach(ev => {
+                    const item = document.createElement('div');
+                    item.className = "p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-100/80 transition flex items-center justify-between gap-2.5";
+                    
+                    const leftPart = document.createElement('div');
+                    leftPart.className = "flex items-start gap-2.5";
+                    
+                    const bullet = document.createElement('span');
+                    bullet.className = `w-2.5 h-2.5 rounded-full mt-1 shrink-0 ${categoryConfig[ev.category].bg.split(' ')[0]}`;
+                    
+                    const textContainer = document.createElement('div');
+                    textContainer.innerHTML = `
+                        <h4 class="text-xs font-bold text-slate-800">${ev.name}</h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">
+                            <i data-lucide="calendar" class="w-3 h-3 inline"></i> ${formatDateRange(ev.start, ev.end)}
+                        </p>
+                    `;
+                    
+                    leftPart.appendChild(bullet);
+                    leftPart.appendChild(textContainer);
+                    item.appendChild(leftPart);
+
+                    if (isEditMode) {
+                        const actDiv = document.createElement('div');
+                        actDiv.className = "flex gap-1 shrink-0";
+                        actDiv.innerHTML = `
+                            <button onclick="editEvent('${ev.id}', event)" class="p-1 hover:bg-blue-100 text-blue-600 rounded transition" title="Edit">
+                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="deleteEvent('${ev.id}', event)" class="p-1 hover:bg-red-100 text-red-600 rounded transition" title="Hapus">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        `;
+                        item.appendChild(actDiv);
+                    }
+
+                    listContainer.appendChild(item);
+                });
+                lucide.createIcons();
+            }
+        }
+
+        function changeMonthlyMonth(direction) {
+            currentMonthlyIndex += direction;
+            if (currentMonthlyIndex < 0) currentMonthlyIndex = 0;
+            if (currentMonthlyIndex >= monthSequence.length) currentMonthlyIndex = monthSequence.length - 1;
+            buildMonthlyView();
+        }
+
+        // Render Official Agenda Table
+        let activeAgendaSemester = 'all';
+        function buildAgendaTable() {
+            const tbody = document.getElementById('agenda-table-body');
+            tbody.innerHTML = '';
+
+            const tableData = calendarEvents.filter(ev => {
+                if (activeAgendaSemester === 'all') return true;
+                return ev.semester.toString() === activeAgendaSemester;
+            });
+
+            tableData.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+            tableData.forEach((ev, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition";
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-semibold text-slate-800 text-xs">${idx + 1}</td>
+                    <td class="px-6 py-4 font-bold text-slate-900 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full ${categoryConfig[ev.category].bg.split(' ')[0]}"></span>
+                            ${ev.name}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-xs font-medium text-slate-600">${formatDateRange(ev.start, ev.end)}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-between w-full">
+                            <div>
+                                <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold ${categoryConfig[ev.category].bg}">
+                                    ${categoryConfig[ev.category].label}
+                                </span>
+                                ${ev.desc ? `<p class="text-[10px] text-slate-400 mt-1">${ev.desc}</p>` : ''}
+                            </div>
+                            
+                            ${isEditMode ? `
+                            <div class="flex items-center gap-1.5 ml-4 no-print">
+                                <button onclick="editEvent('${ev.id}', event)" class="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition">
+                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="deleteEvent('${ev.id}', event)" class="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function filterAgendaSemester(semester) {
+            activeAgendaSemester = semester;
+            
+            document.getElementById('tab-agenda-all').className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100";
+            document.getElementById('tab-agenda-1').className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100";
+            document.getElementById('tab-agenda-2').className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100";
+
+            if (semester === 'all') {
+                document.getElementById('tab-agenda-all').className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 border border-blue-100";
+            } else {
+                document.getElementById('tab-agenda-' + semester).className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 border border-blue-100";
+            }
+
+            buildAgendaTable();
+        }
+
+        // Search engine
+        function searchEvents() {
+            const query = document.getElementById('event-search').value.toLowerCase();
+            if (!query) {
+                build12MonthsGrid();
+                buildAgendaTable();
+                buildMonthlyView();
+                return;
+            }
+
+            const filteredAgenda = calendarEvents.filter(ev => 
+                ev.name.toLowerCase().includes(query) || 
+                (ev.desc && ev.desc.toLowerCase().includes(query)) ||
+                categoryConfig[ev.category].label.toLowerCase().includes(query)
+            );
+
+            // Re-render only filtered results inside table view
+            switchView('agenda');
+            
+            const tbody = document.getElementById('agenda-table-body');
+            tbody.innerHTML = '';
+
+            if (filteredAgenda.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400 text-xs">Tidak ditemukan kegiatan yang cocok.</td></tr>`;
+                return;
+            }
+
+            filteredAgenda.forEach((ev, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-semibold text-slate-800 text-xs">${idx + 1}</td>
+                    <td class="px-6 py-4 font-bold text-slate-900 text-xs">${ev.name}</td>
+                    <td class="px-6 py-4 text-xs font-medium text-slate-600">${formatDateRange(ev.start, ev.end)}</td>
+                    <td class="px-6 py-4 flex justify-between items-center">
+                        <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold ${categoryConfig[ev.category].bg}">
+                            ${categoryConfig[ev.category].label}
+                        </span>
+                        ${isEditMode ? `
+                        <div class="flex items-center gap-1.5 ml-4">
+                            <button onclick="editEvent('${ev.id}', event)" class="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition">
+                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="deleteEvent('${ev.id}', event)" class="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        // Custom Date Range Indonesian Language Formatter
+        function formatDateRange(startStr, endStr) {
+            const start = new Date(startStr);
+            const end = new Date(endStr);
+            
+            const startDay = start.getDate();
+            const startMonth = monthNames[start.getMonth()];
+            const startYear = start.getFullYear();
+
+            if (startStr === endStr) {
+                return `${startDay} ${startMonth} ${startYear}`;
+            }
+
+            const endDay = end.getDate();
+            const endMonth = monthNames[end.getMonth()];
+            const endYear = end.getFullYear();
+
+            if (startMonth === endMonth && startYear === endYear) {
+                return `${startDay} - ${endDay} ${startMonth} ${startYear}`;
+            } else if (startYear === endYear) {
+                return `${startDay} ${startMonth} - ${endDay} ${endMonth} ${startYear}`;
+            } else {
+                return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+            }
+        }
+
+        // Open custom details modal for day clicks
+        let activeSelectedDateString = "";
+        function openDayModal(dateStr, events) {
+            activeSelectedDateString = dateStr;
+            const modal = document.getElementById('event-modal');
+            const dateHeader = document.getElementById('modal-date-header');
+            const eventsList = document.getElementById('modal-events');
+
+            const dateObj = new Date(dateStr);
+            const dayName = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"][dateObj.getDay()];
+            
+            dateHeader.innerText = `${dayName}, ${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+            eventsList.innerHTML = '';
+
+            const activeRoutines = [];
+            if (dateObj.getDay() === 6) {
+                activeRoutines.push({ name: "Kegiatan Pramuka Wajib", category: "rutin", desc: "Setiap hari Sabtu pukul 07:30 - 09:30 WIB." });
+            }
+            if (dateObj.getDay() === 5) {
+                activeRoutines.push({ name: "Pembinaan Karakter & Kebugaran Hari Jumat", category: "rutin", desc: "Siklus bergantian: Jumat Sehat, Jumat Berkah/Tahfidz, Pengelolaan Sampah, atau Brifing Guru." });
+            }
+
+            const allListedEvents = [...events, ...activeRoutines];
+
+            if (allListedEvents.length === 0) {
+                eventsList.innerHTML = `
+                    <div class="text-center py-6">
+                        <p class="text-sm font-medium text-slate-500">Hari Pembelajaran Efektif Biasa</p>
+                        <p class="text-xs text-slate-400 mt-1">Tidak ada agenda khusus maupun libur nasional.</p>
+                    </div>
+                `;
+            } else {
+                allListedEvents.forEach(ev => {
+                    const item = document.createElement('div');
+                    item.className = "p-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-start justify-between gap-3";
+                    
+                    const badge = categoryConfig[ev.category] || { bg: 'bg-slate-200 text-slate-700', label: 'Agenda' };
+                    
+                    const leftPart = document.createElement('div');
+                    leftPart.className = "flex items-start gap-3 w-full";
+                    leftPart.innerHTML = `
+                        <span class="w-3 h-3 rounded-full mt-1.5 shrink-0 ${badge.bg.split(' ')[0]}"></span>
+                        <div class="w-full">
+                            <span class="inline-block text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-white text-slate-500 border border-slate-100 mb-1.5">
+                                ${badge.label}
+                            </span>
+                            <h4 class="text-sm font-bold text-slate-800 leading-tight">${ev.name}</h4>
+                            ${ev.desc ? `<p class="text-xs text-slate-500 mt-1 leading-relaxed">${ev.desc}</p>` : ''}
+                            ${ev.start && ev.end && ev.start !== ev.end ? `<p class="text-[10px] text-slate-400 mt-1">Rentang: ${formatDateRange(ev.start, ev.end)}</p>` : ''}
+                        </div>
+                    `;
+                    item.appendChild(leftPart);
+
+                    if (isEditMode && ev.id) {
+                        const adminContainer = document.createElement('div');
+                        adminContainer.className = "flex flex-col gap-1 shrink-0 ml-2";
+                        adminContainer.innerHTML = `
+                            <button onclick="editEvent('${ev.id}', event)" class="p-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition" title="Ubah Agenda">
+                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="deleteEvent('${ev.id}', event)" class="p-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition" title="Hapus Agenda">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        `;
+                        item.appendChild(adminContainer);
+                    }
+
+                    eventsList.appendChild(item);
+                });
+            }
+
+            const quickBtn = document.getElementById('modal-btn-add-quick');
+            quickBtn.onclick = () => {
+                closeModal();
+                openAddEventModal(activeSelectedDateString);
+            };
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('modal-card').classList.remove('scale-95');
+                document.getElementById('modal-card').classList.add('scale-100');
+            }, 50);
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-card').classList.remove('scale-100');
+            document.getElementById('modal-card').classList.add('scale-95');
+            setTimeout(() => {
+                document.getElementById('event-modal').classList.add('hidden');
+            }, 100);
+        }
+
+        // ADD / EDIT FORM MODAL CONTROLS
+        function openAddEventModal(targetDate = '') {
+            document.getElementById('event-editor-form').reset();
+            document.getElementById('form-event-id').value = '';
+            document.getElementById('form-modal-title').innerText = "Tambah Kegiatan Baru";
+            
+            if (targetDate) {
+                document.getElementById('form-event-start').value = targetDate;
+                document.getElementById('form-event-end').value = targetDate;
+            } else {
+                const today = new Date().toISOString().substring(0, 10);
+                document.getElementById('form-event-start').value = today;
+                document.getElementById('form-event-end').value = today;
+            }
+
+            document.getElementById('form-modal').classList.remove('hidden');
+        }
+
+        function editEvent(id, event) {
+            if (event) event.stopPropagation();
+            
+            const target = calendarEvents.find(e => e.id === id);
+            if (!target) return;
+
+            closeModal();
+
+            document.getElementById('form-event-id').value = target.id;
+            document.getElementById('form-event-name').value = target.name;
+            document.getElementById('form-event-start').value = target.start;
+            document.getElementById('form-event-end').value = target.end;
+            document.getElementById('form-event-category').value = target.category;
+            document.getElementById('form-event-semester').value = target.semester;
+            document.getElementById('form-event-desc').value = target.desc || '';
+
+            document.getElementById('form-modal-title').innerText = "Ubah Kegiatan Kalender";
+            document.getElementById('form-modal').classList.remove('hidden');
+        }
+
+        function deleteEvent(id, event) {
+            if (event) event.stopPropagation();
+            
+            if (confirm("Apakah Anda yakin ingin menghapus agenda kegiatan ini?")) {
+                calendarEvents = calendarEvents.filter(e => e.id !== id);
+                localStorage.setItem('smp7_events', JSON.stringify(calendarEvents));
+                
+                build12MonthsGrid();
+                buildMonthlyView();
+                buildAgendaTable();
+                closeModal();
+            }
+        }
+
+        function closeFormModal() {
+            document.getElementById('form-modal').classList.add('hidden');
+        }
+
+        // Save submitted event data
+        function saveEventData(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('form-event-id').value;
+            const name = document.getElementById('form-event-name').value;
+            const start = document.getElementById('form-event-start').value;
+            const end = document.getElementById('form-event-end').value;
+            const category = document.getElementById('form-event-category').value;
+            const semester = parseInt(document.getElementById('form-event-semester').value);
+            const desc = document.getElementById('form-event-desc').value;
+
+            if (new Date(start) > new Date(end)) {
+                alert("Tanggal selesai tidak boleh lebih awal dari tanggal mulai.");
+                return;
+            }
+
+            if (id) {
+                const targetIdx = calendarEvents.findIndex(e => e.id === id);
+                if (targetIdx !== -1) {
+                    calendarEvents[targetIdx] = { id, name, start, end, category, semester, desc };
+                }
+            } else {
+                const newId = 'ev-custom-' + Date.now();
+                calendarEvents.push({ id: newId, name, start, end, category, semester, desc });
+            }
+
+            localStorage.setItem('smp7_events', JSON.stringify(calendarEvents));
+
+            build12MonthsGrid();
+            buildMonthlyView();
+            buildAgendaTable();
+            closeFormModal();
+        }
+
+        // OPEN STATS/HARI EFEKTIF PERBULAN EDITOR MODAL
+        function openStatsEditorModal() {
+            const tbody = document.getElementById('stats-editor-tbody');
+            tbody.innerHTML = '';
+
+            monthSequence.forEach(item => {
+                const key = `${item.year}-${item.month}`;
+                const mData = monthlyStats[key] || { he: 0, me: 0, notes: "" };
+                const name = `${monthNames[item.month]} ${item.year}`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-bold text-slate-800">${name}</td>
+                    <td class="px-4 py-3">
+                        <input type="number" id="edit-he-${key}" value="${mData.he}" min="0" max="31" class="w-20 px-2 py-1 border border-slate-200 rounded-lg text-center font-semibold bg-slate-50 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="number" id="edit-me-${key}" value="${mData.me}" min="0" max="6" class="w-20 px-2 py-1 border border-slate-200 rounded-lg text-center font-semibold bg-slate-50 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </td>
+                    <td class="px-4 py-3">
+                        <input type="text" id="edit-notes-${key}" value="${mData.notes}" class="w-full px-3 py-1 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="Catatan atau target pembelajaran...">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('stats-editor-modal').classList.remove('hidden');
+        }
+
+        function closeStatsEditorModal() {
+            document.getElementById('stats-editor-modal').classList.add('hidden');
+        }
+
+        // Save customized monthly stats
+        function saveStatsEditorData() {
+            monthSequence.forEach(item => {
+                const key = `${item.year}-${item.month}`;
+                const inputHe = document.getElementById(`edit-he-${key}`);
+                const inputMe = document.getElementById(`edit-me-${key}`);
+                const inputNotes = document.getElementById(`edit-notes-${key}`);
+
+                if (inputHe && inputMe) {
+                    monthlyStats[key] = {
+                        he: parseInt(inputHe.value) || 0,
+                        me: parseInt(inputMe.value) || 0,
+                        notes: inputNotes ? inputNotes.value.trim() : ""
+                    };
+                }
+            });
+
+            localStorage.setItem('smp7_monthly_stats', JSON.stringify(monthlyStats));
+            
+            // Recalculate totals and re-render
+            calculateAndDisplayTotals();
+            build12MonthsGrid();
+            buildMonthlyView();
+            closeStatsEditorModal();
+            alert("Jumlah Hari & Minggu Efektif berhasil diperbarui!");
+        }
+
+        // Backup system: JSON Export
+        function exportCalendarData() {
+            const dataToExport = {
+                metadata: schoolMetadata,
+                events: calendarEvents,
+                monthlyStats: monthlyStats
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `kalender_pendidikan_SMPN7_${new Date().getFullYear()}.json`);
+            dlAnchorElem.click();
+        }
+
+        function triggerImport() {
+            document.getElementById('import-input').click();
+        }
+
+        // Backup system: JSON Import
+        function importCalendarData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.metadata && parsed.events) {
+                        schoolMetadata = parsed.metadata;
+                        calendarEvents = parsed.events;
+                        if (parsed.monthlyStats) {
+                            monthlyStats = parsed.monthlyStats;
+                        }
+                        
+                        localStorage.setItem('smp7_metadata', JSON.stringify(schoolMetadata));
+                        localStorage.setItem('smp7_events', JSON.stringify(calendarEvents));
+                        localStorage.setItem('smp7_monthly_stats', JSON.stringify(monthlyStats));
+                        
+                        applyMetadata();
+                        calculateAndDisplayTotals();
+                        build12MonthsGrid();
+                        buildMonthlyView();
+                        buildAgendaTable();
+                        
+                        alert("Kalender berhasil diperbarui dari berkas backup!");
+                    } else {
+                        alert("Format berkas backup tidak valid.");
+                    }
+                } catch (err) {
+                    alert("Gagal membaca berkas JSON backup.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Reset system to factory default
+        function resetToDefaultData() {
+            if (confirm("Tindakan ini akan menghapus semua perubahan buatan Anda dan mengembalikan pengaturan serta agenda SMPN 7 ke versi bawaan awal. Lanjutkan?")) {
+                localStorage.removeItem('smp7_metadata');
+                localStorage.removeItem('smp7_events');
+                localStorage.removeItem('smp7_monthly_stats');
+                
+                schoolMetadata = {...defaultMetadata};
+                calendarEvents = [...defaultEvents];
+                monthlyStats = {...defaultMonthlyStats};
+                
+                applyMetadata();
+                calculateAndDisplayTotals();
+                build12MonthsGrid();
+                buildMonthlyView();
+                buildAgendaTable();
+
+                if (isEditMode) {
+                    toggleEditMode();
+                }
+                
+                alert("Data kalender berhasil direset.");
+            }
+        }
+    </script>
+</body>
+</html>
